@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Be Color クイズ</title>
+<meta name="theme-color" content="#0047b9">
+<link rel="icon" href="https://prd.resource-api.lit.link/images/creator/XNyQt2UlWWV6aw8MMMFuwbuzKV93/0fa920f0-584c-4e4b-948c-db054d15c463.jpg">
+<link rel="apple-touch-icon" href="https://prd.resource-api.lit.link/images/creator/XNyQt2UlWWV6aw8MMMFuwbuzKV93/0fa920f0-584c-4e4b-948c-db054d15c463.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<script>
+  // ▼ Firebase コンソールの「マイアプリ」に出る firebaseConfig の中身を貼り付ける
+  //   （空のまま、または URL の末尾に ?mock を付けると、お試しモードで動く）
+  const FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyCXVS1MKGb9Xxo4eh3YdsUDotqKuGC_iLo',
+    authDomain: 'bcr2027-quiz.firebaseapp.com',
+    projectId: 'bcr2027-quiz',
+    storageBucket: 'bcr2027-quiz.firebasestorage.app',
+    messagingSenderId: '955771322634',
+    appId: '1:955771322634:web:f94db45a87942603fbfaf3'
+  };
+  const LOGO = 'https://prd.resource-api.lit.link/images/creator/XNyQt2UlWWV6aw8MMMFuwbuzKV93/0fa920f0-584c-4e4b-948c-db054d15c463.jpg';
+</script>
+<style>
+  :root {
+    --accent:#0047b9;
+    --accent-strong:color-mix(in srgb, var(--accent) 78%, #000);
+    --accent-soft:color-mix(in srgb, var(--accent) 12%, #fff);
+    --bg:color-mix(in srgb, var(--accent) 5%, #fff);
+    --card:#ffffff; --text:#1f2d24; --muted:#66786c;
+    --line:color-mix(in srgb, var(--accent) 14%, #fff);
+    --danger:#d93a2b; --ok:#1f9446;
+    --shadow:rgba(0,60,30,.07); --shadow-strong:rgba(0,60,30,.14);
+    /* 選択肢の色（ロゴの7色から） */
+    --c1:#d7141a; --c2:#e8920f; --c3:#1f9446; --c4:#1565ad; --c5:#8a1a7e;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans",system-ui,sans-serif;
+         font-weight:500; line-height:1.6; -webkit-text-size-adjust:100%; min-height:100vh; }
+  button, input { font:inherit; color:inherit; }
+
+  .rainbow { height:5px; background:linear-gradient(90deg,
+    #d7141a 0 14.3%, #e8920f 0 28.6%, #f2e520 0 42.9%, #1f9446 0 57.1%,
+    #1565ad 0 71.4%, #1e2a78 0 85.7%, #8a1a7e 0); }
+  .top { position:sticky; top:0; z-index:2; }
+  header { background:var(--card); border-bottom:3px solid var(--accent); padding:8px 12px;
+           display:flex; gap:8px; align-items:center; }
+  header .logo { height:32px; width:32px; border-radius:50%; object-fit:cover; display:block; flex:none; }
+  header h1 { font-size:16px; margin:0; flex:1; letter-spacing:.04em; min-width:0;
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .who { flex:none; display:flex; align-items:center; gap:6px; font-size:12px; padding:3px 4px 3px 10px;
+         border-radius:99px; background:var(--accent-soft); color:var(--accent-strong); border:0; cursor:pointer;
+         max-width:44vw; }
+  .who span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .who i { font-style:normal; background:var(--card); border-radius:99px; padding:0 8px; font-size:11px; flex:none; }
+
+  .net { background:#fff4e0; color:#8a5a00; font-size:12px; text-align:center; padding:4px 12px; }
+
+  main { max-width:560px; margin:0 auto; padding:16px 16px calc(32px + env(safe-area-inset-bottom)); }
+
+  /* カード */
+  .panel { background:var(--card); border-radius:18px; overflow:hidden; box-shadow:0 6px 24px var(--shadow-strong); }
+  .panel-head { background:var(--accent); color:#fff; padding:16px 18px 14px; position:relative; }
+  .panel-head .sub { font-size:12px; opacity:.85; letter-spacing:.08em; }
+  .panel-head h2 { margin:2px 0 0; font-size:20px; line-height:1.4; }
+  .panel-body { padding:16px 18px 18px; }
+
+  .pill { position:absolute; top:14px; right:14px; background:#fff; color:var(--accent-strong);
+          font-size:12px; font-weight:700; padding:3px 10px; border-radius:99px; display:flex; align-items:center; gap:6px; }
+  .pill .dot { width:8px; height:8px; border-radius:50%; background:var(--ok); animation:blink 1.4s ease-in-out infinite; }
+  .pill.closed { color:var(--danger); }
+  .pill.closed .dot { background:var(--danger); animation:none; }
+  @keyframes blink { 50% { opacity:.25; } }
+
+  /* 登録 */
+  .label { font-size:13px; color:var(--muted); margin:0 0 8px; }
+  .label + .label { margin-top:-4px; }
+  .seg { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+  .seg button { border:2px solid var(--line); background:var(--card); border-radius:14px; padding:14px 8px;
+                font-weight:700; font-size:16px; cursor:pointer; }
+  .seg button small { display:block; font-size:11px; color:var(--muted); font-weight:500; }
+  .seg button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent-soft); color:var(--accent-strong); }
+  .teams { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; margin-bottom:18px; }
+  .teams button { aspect-ratio:1; border:2px solid var(--line); background:var(--card); border-radius:12px;
+                  font-weight:700; font-size:20px; cursor:pointer; padding:0; }
+  .teams button[aria-pressed="true"] { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:13px; color:var(--muted); margin-bottom:4px; }
+  .field input { width:100%; font-size:16px; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; }
+  .field input:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+  .btn { display:block; width:100%; border:0; border-radius:12px; padding:14px; font-weight:700; font-size:16px;
+         background:var(--accent); color:#fff; cursor:pointer; }
+  .btn:disabled { opacity:.4; cursor:default; }
+  .btn.ghost { background:var(--card); color:var(--muted); border:1px solid var(--line); font-weight:500; margin-top:8px; }
+
+  /* 待機・終了 */
+  .center { text-align:center; padding:40px 18px 36px; }
+  .center .big-logo { width:96px; height:96px; border-radius:50%; object-fit:cover; display:block; margin:0 auto 14px;
+                      box-shadow:0 4px 14px var(--shadow-strong); }
+  .center h2 { font-size:20px; margin:0 0 6px; }
+  .center p { color:var(--muted); margin:0; white-space:pre-wrap; word-break:break-word; }
+  .dots { display:flex; justify-content:center; gap:8px; margin-top:20px; }
+  .dots span { width:10px; height:10px; border-radius:50%; animation:hop 1.2s ease-in-out infinite; }
+  .dots span:nth-child(1) { background:var(--c1); }
+  .dots span:nth-child(2) { background:var(--c2); animation-delay:.15s; }
+  .dots span:nth-child(3) { background:var(--c3); animation-delay:.3s; }
+  .dots span:nth-child(4) { background:var(--c4); animation-delay:.45s; }
+  .dots span:nth-child(5) { background:var(--c5); animation-delay:.6s; }
+  @keyframes hop { 0%, 60%, 100% { transform:translateY(0); } 30% { transform:translateY(-8px); } }
+
+  /* 問題 */
+  .question { font-size:19px; font-weight:700; line-height:1.55; margin:0 0 16px; white-space:pre-wrap; word-break:break-word; }
+  .choices { display:grid; gap:10px; }
+  .choice { --c:var(--accent); display:flex; align-items:center; gap:12px; width:100%; text-align:left;
+            background:var(--card); border:2px solid var(--line); border-left:6px solid var(--c);
+            border-radius:14px; padding:14px 14px 14px 12px; font-size:16px; font-weight:700; cursor:pointer;
+            transition:background .15s, transform .1s, border-color .15s; min-height:62px; }
+  .choice:active { transform:scale(.985); }
+  .choice .mark { flex:none; width:36px; height:36px; border-radius:50%; display:grid; place-items:center;
+                  background:color-mix(in srgb, var(--c) 12%, #fff); color:var(--c); font-size:17px; }
+  .choice .txt { flex:1; min-width:0; word-break:break-word; }
+  .choice .chk { flex:none; width:24px; height:24px; border-radius:50%; border:2px solid var(--line); display:grid; place-items:center; }
+  .choice[aria-pressed="true"] { border-color:var(--c); background:color-mix(in srgb, var(--c) 9%, #fff); }
+  .choice[aria-pressed="true"] .mark { background:var(--c); color:#fff; }
+  .choice[aria-pressed="true"] .chk { border-color:var(--c); background:var(--c); }
+  .choice[aria-pressed="true"] .chk::after { content:""; width:6px; height:11px; border:solid #fff; border-width:0 2.5px 2.5px 0;
+                                             transform:translateY(-1px) rotate(45deg); }
+  .choice:nth-child(1) { --c:var(--c1); } .choice:nth-child(2) { --c:var(--c2); } .choice:nth-child(3) { --c:var(--c3); }
+  .choice:nth-child(4) { --c:var(--c4); } .choice:nth-child(5) { --c:var(--c5); }
+  .choices.locked .choice { cursor:default; }
+  .choices.locked .choice:active { transform:none; }
+  .choices.locked .choice[aria-pressed="false"] { opacity:.45; }
+
+  .status { margin-top:14px; padding:11px 14px; border-radius:12px; font-size:14px; background:var(--accent-soft);
+            color:var(--accent-strong); display:flex; gap:8px; align-items:center; }
+  .status.ok { background:color-mix(in srgb, var(--ok) 11%, #fff); color:color-mix(in srgb, var(--ok) 75%, #000); }
+  .status.closed { background:color-mix(in srgb, var(--danger) 9%, #fff); color:var(--danger); }
+  .status .spin { width:14px; height:14px; border-radius:50%; border:2px solid currentColor; border-top-color:transparent;
+                  animation:spin .8s linear infinite; flex:none; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  .loading { text-align:center; color:var(--muted); padding:60px 0; }
+  .loading .spinner { width:28px; height:28px; margin:0 auto 10px; border-radius:50%;
+                      border:3px solid var(--accent-soft); border-top-color:var(--accent); animation:spin 1s linear infinite; }
+  .hidden { display:none !important; }
+
+  /* お試しモードの操作パネル */
+  #mock { position:fixed; left:8px; right:8px; bottom:8px; z-index:5; background:#1f2d24; color:#fff; border-radius:12px;
+          padding:8px 10px; font-size:12px; display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+          box-shadow:0 6px 24px rgba(0,0,0,.25); }
+  #mock b { margin-right:4px; }
+  #mock button { background:#fff; color:#1f2d24; border:0; border-radius:6px; padding:4px 8px; font-size:12px; cursor:pointer; }
+  #mock button.on { background:#f2e520; }
+  body.has-mock main { padding-bottom:110px; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="rainbow"></div>
+  <header>
+    <img class="logo" id="logo" alt="">
+    <h1>Be Color クイズ</h1>
+    <button class="who hidden" id="who" type="button"><span id="whoText"></span><i>変更</i></button>
+  </header>
+  <div class="net hidden" id="net">接続を確認しています…</div>
+</div>
+
+<main id="main">
+  <div class="loading"><div class="spinner"></div>読み込み中…</div>
+</main>
+
+<script type="module">
+(async () => {
+  const MOCK = !FIREBASE_CONFIG.projectId || new URLSearchParams(location.search).has('mock');
+  const $ = s => document.querySelector(s);
+  const main = $('#main');
+  const LABELS = ['A', 'B', 'C', 'D', 'E'];
+  const TEAMS = 'ABCDEFGHIJKLMNOPQRST'.split('');
+  document.getElementById('logo').src = LOGO;
+
+  // ---------- 保存 ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('bcq_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('bcq_' + k, JSON.stringify(v)); } catch (e) {} }
+  };
+  let deviceId = store.get('device');
+  if (!deviceId) {
+    deviceId = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
+    store.set('device', deviceId);
+  }
+  let profile = store.get('profile', null);
+  // answers[qno] = { sel: 画面で選んでいる番号, ok: Firestore に記録された番号 }
+  // round はリハーサル→本番で回答をリセットしたときに変わる
+  const saved = store.get('answers', {});
+  let round = saved.round || '';
+  let answers = saved.map || {};
+  const saveAnswers = () => store.set('answers', { round, map: answers });
+
+  // ---------- 通信 ----------
+  let api;
+  try {
+    api = MOCK ? mockApi() : await firebaseApi();
+  } catch (e) {
+    main.innerHTML = '<div class="loading">読み込みに失敗しました。<br>電波の良いところでページを再読み込みしてください。</div>';
+    return;
+  }
+
+  async function firebaseApi() {
+    const V = '10.12.2';
+    const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+    const fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    const db = fs.getFirestore(initializeApp(FIREBASE_CONFIG));
+    return {
+      // quiz/state が変わるたびに onState が呼ばれる（スプシ操作から1〜2秒で届く）
+      subscribe(onState, onConn) {
+        fs.onSnapshot(fs.doc(db, 'quiz', 'state'), { includeMetadataChanges: true }, snap => {
+          onConn(!snap.metadata.fromCache);
+          onState(snap.exists() ? snap.data() : { status: 'waiting', total: 0 });
+        }, () => onConn(false));
+      },
+      async answer(job) {
+        try {
+          await fs.setDoc(fs.doc(db, 'answers', job.qno + '_' + deviceId), {
+            deviceId, qno: job.qno, choice: job.choice,
+            dept: profile.dept,
+            team: profile.dept === 'student' ? profile.team : '',
+            cls: profile.dept === 'parent' ? profile.cls : '',
+            nick: profile.dept === 'parent' ? profile.nick : '',
+            updatedAt: fs.serverTimestamp()
+          });
+          return { ok: true };
+        } catch (e) {
+          // 締切後・別の問題への書き込みは firestore.rules で拒否される
+          if (e.code === 'permission-denied') return { ok: false, error: 'closed' };
+          throw e;
+        }
+      }
+    };
+  }
+
+  let state = null;
+  let editingProfile = !profile;
+
+  function setConnected(ok) { $('#net').classList.toggle('hidden', ok); }
+
+  function applyState(s) {
+    if (s.round && s.round !== round) {
+      round = s.round;
+      answers = {};
+      saveAnswers();
+    }
+    const same = state && JSON.stringify(state) === JSON.stringify(s);
+    const changedQ = !state || state.qno !== s.qno;
+    state = s;
+    // 登録画面の入力中や、内容が変わっていないときは描き直さない
+    if (same || editingProfile) return;
+    if (changedQ && s.qno) window.scrollTo({ top: 0 });
+    render();
+  }
+
+  // 回答送信：連打されても最後に選んだものだけを順に送る
+  let pending = null, inflight = false, retryTimer = null;
+  function choose(i) {
+    if (!state || state.status !== 'open') return;
+    const q = state.qno;
+    const a = answers[q] || (answers[q] = { sel: null, ok: null });
+    a.sel = i;
+    saveAnswers();
+    pending = { qno: q, choice: i };
+    render();
+    flush();
+  }
+  async function flush() {
+    if (inflight || !pending) return;
+    clearTimeout(retryTimer);
+    inflight = true;
+    const job = pending;
+    pending = null;
+    let retry = false;
+    try {
+      const res = await api.answer(job);
+      const a = answers[job.qno];
+      if (res.ok) {
+        a.ok = job.choice;
+      } else {
+        // 締切に間に合わなかった：記録されている回答に戻す
+        if (!pending || pending.qno !== job.qno) a.sel = a.ok;
+      }
+      saveAnswers();
+    } catch (e) {
+      retry = true;
+    }
+    if (retry && !pending) { pending = job; retryTimer = setTimeout(flush, 1500 + Math.random() * 1500); }
+    inflight = false;
+    render();
+    if (pending && !retry) flush();
+  }
+
+  // ---------- 表示 ----------
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+  function profileText(p) {
+    return p.dept === 'student' ? '生徒・チーム' + p.team : '保護者・' + p.cls + '・' + p.nick;
+  }
+
+  function render() {
+    const who = $('#who');
+    if (profile && !editingProfile) {
+      who.classList.remove('hidden');
+      $('#whoText').textContent = profileText(profile);
+    } else {
+      who.classList.add('hidden');
+    }
+    if (editingProfile) return renderProfile();
+    if (!state) return;
+    if (state.status === 'waiting') return renderCenter('まもなくスタート', state.message || '次の問題をお待ちください', true);
+    if (state.status === 'finished') return renderCenter('おつかれさまでした！', 'クイズはすべて終了です。\n結果発表をお楽しみに！', false);
+    renderQuestion();
+  }
+
+  function renderCenter(title, msg, dots) {
+    main.innerHTML = `
+      <div class="panel"><div class="center">
+        <img class="big-logo" src="${esc(LOGO)}" alt="">
+        <h2>${esc(title)}</h2>
+        <p>${esc(msg)}</p>
+        ${dots ? '<div class="dots"><span></span><span></span><span></span><span></span><span></span></div>' : ''}
+      </div></div>`;
+  }
+
+  function renderQuestion() {
+    const s = state;
+    const a = answers[s.qno] || { sel: null, ok: null };
+    const closed = s.status === 'closed';
+    const sel = closed ? a.ok : a.sel;
+    const sending = !closed && (inflight || pending) && a.sel !== a.ok;
+
+    let status;
+    if (closed) {
+      status = sel ? `<div class="status closed">締め切りました。あなたの回答は <b>${LABELS[sel - 1]}</b> です</div>`
+                   : `<div class="status closed">締め切りました（未回答）</div>`;
+    } else if (sending) {
+      status = `<div class="status"><span class="spin"></span>送信中…</div>`;
+    } else if (a.ok) {
+      status = `<div class="status ok">✓ <span><b>${LABELS[a.ok - 1]}</b> で回答しました。締切までは何度でも選び直せます</span></div>`;
+    } else {
+      status = `<div class="status">答えを選んでください</div>`;
+    }
+
+    main.innerHTML = `
+      <div class="panel">
+        <div class="panel-head">
+          <div class="sub">QUESTION ${s.number} / ${s.total}</div>
+          <h2>第${s.number}問</h2>
+          <div class="pill ${closed ? 'closed' : ''}"><span class="dot"></span>${closed ? '締切' : '受付中'}</div>
+        </div>
+        <div class="panel-body">
+          <p class="question">${esc(s.question)}</p>
+          <div class="choices ${closed ? 'locked' : ''}">
+            ${s.choices.map((c, i) => `
+              <button class="choice" type="button" data-i="${i + 1}" aria-pressed="${sel === i + 1}" ${closed ? 'aria-disabled="true"' : ''}>
+                <span class="mark">${LABELS[i]}</span><span class="txt">${esc(c)}</span><span class="chk"></span>
+              </button>`).join('')}
+          </div>
+          ${status}
+        </div>
+      </div>`;
+    main.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => choose(Number(b.dataset.i))));
+  }
+
+  // 登録画面
+  let draft = null;
+  function renderProfile() {
+    if (!draft) draft = Object.assign({ dept: null, team: null, cls: '', nick: '' }, profile || {});
+    const d = draft;
+    const valid = d.dept === 'student' ? !!d.team : d.dept === 'parent' ? !!(d.cls.trim() && d.nick.trim()) : false;
+    main.innerHTML = `
+      <div class="panel">
+        <div class="panel-head"><div class="sub">ENTRY</div><h2>回答する人を選んでください</h2></div>
+        <div class="panel-body">
+          <p class="label">部門</p>
+          <div class="seg">
+            <button type="button" data-dept="student" aria-pressed="${d.dept === 'student'}">生徒<small>チームで回答</small></button>
+            <button type="button" data-dept="parent" aria-pressed="${d.dept === 'parent'}">保護者<small>個人で回答</small></button>
+          </div>
+          ${d.dept === 'student' ? `
+            <p class="label">チーム</p>
+            <div class="teams">${TEAMS.map(t => `<button type="button" data-team="${t}" aria-pressed="${d.team === t}">${t}</button>`).join('')}</div>
+          ` : ''}
+          ${d.dept === 'parent' ? `
+            <div class="field"><label for="cls">お子さまのクラス名</label>
+              <input id="cls" maxlength="30" autocomplete="off" placeholder="例：火曜キッズ" value="${esc(d.cls)}"></div>
+            <div class="field"><label for="nick">ニックネーム</label>
+              <input id="nick" maxlength="30" autocomplete="nickname" placeholder="例：たろうママ" value="${esc(d.nick)}"></div>
+          ` : ''}
+          <button class="btn" id="go" type="button" ${valid ? '' : 'disabled'}>${profile ? 'この内容で回答する' : 'はじめる'}</button>
+          ${profile ? '<button class="btn ghost" id="cancel" type="button">キャンセル</button>' : ''}
+        </div>
+      </div>`;
+    main.querySelectorAll('[data-dept]').forEach(b => b.onclick = () => { d.dept = b.dataset.dept; renderProfile(); });
+    main.querySelectorAll('[data-team]').forEach(b => b.onclick = () => { d.team = b.dataset.team; renderProfile(); });
+    ['cls', 'nick'].forEach(k => {
+      const el = document.getElementById(k);
+      if (el) el.oninput = () => { d[k] = el.value; $('#go').disabled = !(d.cls.trim() && d.nick.trim()); };
+    });
+    $('#go').onclick = () => {
+      profile = d.dept === 'student' ? { dept: 'student', team: d.team } : { dept: 'parent', cls: d.cls.trim(), nick: d.nick.trim() };
+      store.set('profile', profile);
+      editingProfile = false;
+      draft = null;
+      render();
+    };
+    const cancel = document.getElementById('cancel');
+    if (cancel) cancel.onclick = () => { editingProfile = false; draft = null; render(); };
+  }
+  $('#who').onclick = () => { editingProfile = true; draft = null; render(); };
+
+  // ---------- お試しモード（Firebase なしで画面だけ確認） ----------
+  function mockApi() {
+    const qs = [
+      { q: 'Be Color の発表会、今年で何回目？', c: ['5回目', '8回目', '10回目', '12回目'] },
+      { q: 'ロゴに使われている色は何色？', c: ['3色', '5色', '7色'] },
+      { q: '一番長いチーム名を言えるのは？\n（選択肢5つの表示確認用）', c: ['チームA', 'チームB', 'チームC', 'チームD', 'チームE とても長い名前のチームでも折り返して表示されます'] }
+    ];
+    const m = { cur: 0, closed: {}, finished: false };
+    const st = () => {
+      const base = { qno: 0, number: 0, question: '', choices: [], total: qs.length, message: 'まもなくクイズが始まります！', round: 'mock' };
+      if (m.finished) return Object.assign(base, { status: 'finished' });
+      if (!m.cur) return Object.assign(base, { status: 'waiting' });
+      const q = qs[m.cur - 1];
+      return Object.assign(base, { status: m.closed[m.cur] ? 'closed' : 'open', qno: m.cur, number: m.cur, question: q.q, choices: q.c });
+    };
+    let listener = null;
+    const delay = ms => new Promise(r => setTimeout(r, ms));
+    document.body.classList.add('has-mock');
+    const bar = document.createElement('div');
+    bar.id = 'mock';
+    document.body.appendChild(bar);
+    const draw = () => {
+      bar.innerHTML = '<b>お試し操作</b>' +
+        `<button data-k="0" class="${!m.cur && !m.finished ? 'on' : ''}">待機</button>` +
+        qs.map((_, i) => `<button data-k="${i + 1}" class="${m.cur === i + 1 && !m.finished ? 'on' : ''}">第${i + 1}問</button>`).join('') +
+        `<button data-k="close" class="${m.closed[m.cur] ? 'on' : ''}">締切</button><button data-k="end" class="${m.finished ? 'on' : ''}">終了</button>`;
+    };
+    bar.onclick = e => {
+      const k = e.target.dataset && e.target.dataset.k;
+      if (k == null) return;
+      if (k === 'close') { if (m.cur) m.closed[m.cur] = !m.closed[m.cur]; }
+      else if (k === 'end') m.finished = true;
+      else { m.finished = false; m.cur = Number(k); }
+      draw();
+      setTimeout(() => listener && listener(st()), 300);
+    };
+    draw();
+    return {
+      subscribe(onState, onConn) { listener = onState; onConn(true); onState(st()); },
+      async answer(job) {
+        await delay(400 + Math.random() * 400);
+        const s = st();
+        if (s.status !== 'open' || s.qno !== job.qno) return { ok: false, error: 'closed' };
+        return { ok: true };
+      }
+    };
+  }
+
+  render();
+  api.subscribe(applyState, setConnected);
+})();
+</script>
+</body>
+</html>
